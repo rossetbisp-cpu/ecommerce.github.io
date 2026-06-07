@@ -45,7 +45,86 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     ],
   }),
   component: Dashboard,
+  errorComponent: DashboardErrorComponent,
 });
+
+function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const isDev = import.meta.env.DEV;
+  const anyErr = error as unknown as {
+    message?: string;
+    stack?: string;
+    cause?: unknown;
+    code?: string;
+    details?: string;
+    hint?: string;
+  };
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+      <Card className="w-full max-w-2xl p-6 space-y-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-destructive">
+            Erro ao carregar despesas
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isDev
+              ? "Modo de desenvolvimento — detalhes técnicos abaixo."
+              : "Tente novamente em instantes."}
+          </p>
+        </div>
+
+        {isDev && (
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs uppercase text-muted-foreground mb-1">Mensagem</div>
+              <pre className="text-xs bg-muted rounded p-3 whitespace-pre-wrap break-words">
+                {anyErr.message ?? String(error)}
+              </pre>
+            </div>
+            {(anyErr.code || anyErr.details || anyErr.hint) && (
+              <div>
+                <div className="text-xs uppercase text-muted-foreground mb-1">
+                  Campos do backend
+                </div>
+                <pre className="text-xs bg-muted rounded p-3 whitespace-pre-wrap break-words">
+                  {JSON.stringify(
+                    { code: anyErr.code, details: anyErr.details, hint: anyErr.hint },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </div>
+            )}
+            {anyErr.cause != null && (
+              <div>
+                <div className="text-xs uppercase text-muted-foreground mb-1">Cause</div>
+                <pre className="text-xs bg-muted rounded p-3 whitespace-pre-wrap break-words">
+                  {(() => {
+                    try {
+                      return JSON.stringify(anyErr.cause, null, 2);
+                    } catch {
+                      return String(anyErr.cause);
+                    }
+                  })()}
+                </pre>
+              </div>
+            )}
+            {anyErr.stack && (
+              <div>
+                <div className="text-xs uppercase text-muted-foreground mb-1">Stack</div>
+                <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-64">
+                  {anyErr.stack}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Button onClick={reset}>Tentar novamente</Button>
+      </Card>
+    </div>
+  );
+}
+
 
 type Expense = {
   id: string;
@@ -65,7 +144,9 @@ function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => fetchExpenses() as Promise<Expense[]>,
+    throwOnError: true,
   });
+
 
   const [pacote, setPacote] = useState<string>("all");
   const [fornecedor, setFornecedor] = useState<string>("all");
