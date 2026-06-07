@@ -144,7 +144,9 @@ function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["expenses"],
     queryFn: () => fetchExpenses() as Promise<Expense[]>,
+    throwOnError: true,
   });
+
 
   const [pacote, setPacote] = useState<string>("all");
   const [fornecedor, setFornecedor] = useState<string>("all");
